@@ -211,6 +211,10 @@ public class QiaopcPlayer {
         }
     }
 
+    public void onCallRenderYUV(int width, int height, byte[] y, byte[] u, byte[] v) {
+        MyLog.d("获取到视频的yuv数据");
+    }
+
     public int getDuration() {
         if (duration < 0) {
             duration = n_duration();

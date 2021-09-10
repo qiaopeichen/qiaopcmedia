@@ -29,6 +29,7 @@ public:
     jmethodID jmid_callpcmtoacc;
     jmethodID jmid_pcminfo;
     jmethodID jmid_pcmrate;
+    jmethodID jmid_renderyuv;
 public:
     CallJava(JavaVM *javaVM, JNIEnv *env, jobject *obj);
     ~CallJava();
@@ -50,6 +51,8 @@ public:
     void onCallPcmInfo(void *buffer, int size);
 
     void onCallPcmRate(int samplerate);
+
+    void onCallRenderYUV(int width, int height, uint8_t *fy, uint8_t *fu, uint8_t *fv);
 };
 
 

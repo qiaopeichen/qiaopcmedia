@@ -10,6 +10,8 @@
 #include "CallJava.h"
 
 extern "C" {
+#include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
 #include "include/libavcodec/avcodec.h"
 #include <libavutil/time.h>
 
