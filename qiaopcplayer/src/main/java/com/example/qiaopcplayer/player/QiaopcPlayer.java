@@ -17,6 +17,7 @@ import com.example.qiaopcplayer.listener.OnTimeInfoListener;
 import com.example.qiaopcplayer.listener.OnValumeDBListener;
 import com.example.qiaopcplayer.log.MyLog;
 import com.example.qiaopcplayer.muteenum.MuteEnum;
+import com.example.qiaopcplayer.opengl.MyGLSurfaceView;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -54,10 +55,15 @@ public class QiaopcPlayer {
     private OnValumeDBListener onValumeDBListener;
     private OnRecordTimeListener onRecordTimeListener;
     private OnPcmInfoListener onPcmInfoListener;
+    private MyGLSurfaceView myGLSurfaceView;
     private static TimeInfoBean timeInfoBean;
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public void setMyGLSurfaceView(MyGLSurfaceView myGLSurfaceView) {
+        this.myGLSurfaceView = myGLSurfaceView;
     }
 
     public void setOnPreparedListener(OnPreparedListener onPreparedListener) {
@@ -213,6 +219,9 @@ public class QiaopcPlayer {
 
     public void onCallRenderYUV(int width, int height, byte[] y, byte[] u, byte[] v) {
         MyLog.d("获取到视频的yuv数据");
+        if (myGLSurfaceView != null) {
+            myGLSurfaceView.setYUVData(width, height, y, u, v);
+        }
     }
 
     public int getDuration() {

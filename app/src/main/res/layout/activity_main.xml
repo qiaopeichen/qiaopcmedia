@@ -7,6 +7,11 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
+    <com.example.qiaopcplayer.opengl.MyGLSurfaceView
+        android:layout_width="match_parent"
+        android:layout_height="250dp"
+        android:id="@+id/myglsurfaceview"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -163,7 +168,7 @@
             android:onClick="stop_record"
             android:text="停止录制" />
     </LinearLayout>
-    <com.example.myapplication.MyGLSurfaceView
+    <com.example.qiaopcplayer.opengl.MyGLSurfaceView
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 </LinearLayout>

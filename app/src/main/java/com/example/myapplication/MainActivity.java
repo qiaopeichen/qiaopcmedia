@@ -22,6 +22,7 @@ import com.example.qiaopcplayer.listener.OnTimeInfoListener;
 import com.example.qiaopcplayer.listener.OnValumeDBListener;
 import com.example.qiaopcplayer.log.MyLog;
 import com.example.qiaopcplayer.muteenum.MuteEnum;
+import com.example.qiaopcplayer.opengl.MyGLSurfaceView;
 import com.example.qiaopcplayer.player.QiaopcPlayer;
 import com.example.qiaopcplayer.util.TimeUtil;
 
@@ -38,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     TextView tvVolume;
     private int position = 0; //0-100 seekbar  value
     private boolean isSeekBar = false;
+    private MyGLSurfaceView myGLSurfaceView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,7 +49,10 @@ public class MainActivity extends AppCompatActivity {
         seekBarSeek = findViewById(R.id.seekbar_seek);
         seekBarVolume = findViewById(R.id.seekbar_volume);
         tvVolume = findViewById(R.id.tv_volume);
+        myGLSurfaceView = findViewById(R.id.myglsurfaceview);
         qiaopcPlayer = new QiaopcPlayer();
+        qiaopcPlayer.setMyGLSurfaceView(myGLSurfaceView);
+
         qiaopcPlayer.setVolume(70);
         qiaopcPlayer.setPitch(1.0f);
         qiaopcPlayer.setSpeed(1.0f);

@@ -1,4 +1,5 @@
-package com.example.myapplication;
+package com.example.qiaopcplayer.opengl;
+
 
 import android.content.Context;
 import android.opengl.GLES20;
