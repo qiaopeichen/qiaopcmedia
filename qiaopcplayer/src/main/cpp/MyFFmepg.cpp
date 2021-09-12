@@ -85,6 +85,15 @@ void MyFFmepg::decodeFFmpegThread() {
                 video->streamIndex = i;
                 video->codecpar = pFormatCtx->streams[i]->codecpar;
                 video->time_base = pFormatCtx->streams[i]->time_base;
+
+                int num = pFormatCtx->streams[i]->avg_frame_rate.num; // 分子
+                int den = pFormatCtx->streams[i]->avg_frame_rate.den; // 分母
+                if(num != 0 && den != 0) {
+                    int fps = num / den;
+                    LOGE("diff is fps = %d num = %d den = %d",fps, num,den);
+                    video->defaultDelayTime = 1.0 / fps;
+                    LOGE("diff is fps = %d num = %d den = %d  default = %lf",fps, num,den, video->defaultDelayTime);
+                }
             }
         }
     }
@@ -118,6 +127,11 @@ void MyFFmepg::start() {
         }
         return;
     }
+    if (video == NULL) {
+        return;
+    }
+
+    video->audio = audio;
 
     audio->play();
     video->play();
@@ -128,9 +142,9 @@ void MyFFmepg::start() {
             av_usleep(100 *1000); //睡眠100毫秒
             continue;
         }
-        if (audio->queue->getQueueSize() > 100) {
-            continue;
-        }
+//        if (audio->queue->getQueueSize() > 100) {
+//            continue;
+//        }
         AVPacket *avPacket = av_packet_alloc(); //AVPacket是存储压缩编码数据相关信息的结构体，一个avpacket里，可能存在多个frame
         pthread_mutex_lock(&seek_mutex);
         int ret = av_read_frame(pFormatCtx, avPacket); //

@@ -8,6 +8,7 @@
 
 #include "MyQueue.h"
 #include "CallJava.h"
+#include "MyAudio.h"
 
 extern "C" {
 #include <libavutil/imgutils.h>
@@ -28,11 +29,19 @@ public:
     AVRational time_base; //这个流的每一帧，持续的时间的分数表达式
 
     pthread_t thread_play;
+
+    MyAudio *audio = NULL;
+    double clock = 0;
 public:
     MyVideo(Playstatus *playstatus, CallJava *callJava);
     ~MyVideo();
     void play();
     void release();
+
+    double getFrameDiffTime(AVFrame * avFrame);
+    double getDelayTime(double diff);
+    double delayTime = 0;
+    double defaultDelayTime = 0.04; //默认帧数25
 };
 
 

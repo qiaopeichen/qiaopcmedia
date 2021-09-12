@@ -63,7 +63,13 @@ void * playVideo(void *data) {
         }
         LOGE("子线程解码一个AVframe成功");
         if (avFrame->format == AV_PIX_FMT_YUV420P) {
-            LOGE("当前视频是YUV420格式");
+            LOGE("当前视频是YUV420P格式");
+
+            double diff = video->getFrameDiffTime(avFrame);
+            LOGE("diff is %f", diff);
+
+            av_usleep(video->getDelayTime(diff) * 1000000); //秒转成微秒
+//            LOGE("diff is sleep---------- %d", static_cast<unsigned int>(video->getDelayTime(diff) * 1000000));
             //直接渲染
             video->callJava->onCallRenderYUV(video->avCodecContext->width,
                                              video->avCodecContext->height,
@@ -71,7 +77,7 @@ void * playVideo(void *data) {
                                              avFrame->data[1],
                                              avFrame->data[2]);
         } else {
-            LOGE("当前视频不是YUV420格式");
+            LOGE("当前视频不是YUV420P格式");
             AVFrame *pFrameYUV420P = av_frame_alloc();
             int num = av_image_get_buffer_size(AV_PIX_FMT_YUV420P,
                                                video->avCodecContext->width,
@@ -148,6 +154,40 @@ void MyVideo::release() {
     if (callJava != NULL) {
         callJava = NULL;
     }
+}
+
+double MyVideo::getFrameDiffTime(AVFrame *avFrame) {
+    double pts = av_frame_get_best_effort_timestamp(avFrame);
+    if (pts == AV_NOPTS_VALUE) {
+        pts = 0;
+    }
+    pts *= av_q2d(time_base);
+    if (pts > 0) {
+        clock = pts;
+    }
+    double diff = audio->clock - clock;
+    return diff;
+}
+
+double MyVideo::getDelayTime(double diff) {
+    if (diff > 0) {
+        delayTime = 0;
+    } else if (diff < - 0.003){
+        delayTime = delayTime * 3 / 2;
+        if (delayTime < defaultDelayTime / 2) {
+            delayTime = defaultDelayTime * 2 / 3;
+        } else if (delayTime > defaultDelayTime * 2) {
+            delayTime = defaultDelayTime * 2;
+        }
+    } else if (diff <= -0.5){
+        delayTime = defaultDelayTime * 2; //2倍延迟
+    }
+    if (fabs(diff) >= 10) {
+        //这种情况 音频不存在
+        delayTime = defaultDelayTime;
+    }
+    LOGE("diff is  sleep -> %lf  default = %lf", delayTime, defaultDelayTime);
+    return delayTime;
 }
 
 
