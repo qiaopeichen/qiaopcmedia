@@ -142,9 +142,9 @@ void MyFFmepg::start() {
             av_usleep(100 *1000); //睡眠100毫秒
             continue;
         }
-//        if (audio->queue->getQueueSize() > 100) {
-//            continue;
-//        }
+        if (audio->queue->getQueueSize() > 40) {
+            continue;
+        }
         AVPacket *avPacket = av_packet_alloc(); //AVPacket是存储压缩编码数据相关信息的结构体，一个avpacket里，可能存在多个frame
         pthread_mutex_lock(&seek_mutex);
         int ret = av_read_frame(pFormatCtx, avPacket); //
@@ -185,10 +185,14 @@ void MyFFmepg::start() {
                     av_usleep(100 *1000); //睡眠100毫秒
                     continue;
                 } else {
-                    playstatus->exit = true;
+                    if (!playstatus->seek) {
+                        av_usleep(1000 * 500);
+                        playstatus->exit = true;
+                    }
                     break;
                 }
             }
+            break;
         }
     }
     if (callJava != NULL) {
@@ -201,12 +205,20 @@ void MyFFmepg::start() {
 }
 
 void MyFFmepg::pause() {
+    if (playstatus != NULL) {
+        playstatus->pause = true;
+    }
+
     if (audio != NULL) {
         audio->pause();
     }
 }
 
 void MyFFmepg::resume() {
+    if (playstatus != NULL) {
+        playstatus->pause = false;
+    }
+
     if (audio != NULL) {
         audio->resume();
     }
@@ -285,19 +297,28 @@ void MyFFmepg::seek(int64_t secds) {
         return;
     }
     if(secds >= 0 && secds <= duration) {
+        playstatus->seek = true;
+        pthread_mutex_lock(&seek_mutex);
+        int64_t rel = secds * AV_TIME_BASE; //真实时间 = 秒数 * 时间基
+        LOGE("seek time = %d   real time =  %ld", secds, (long)rel);
+        avformat_seek_file(pFormatCtx, -1, INT64_MIN, rel, INT64_MAX, 0); // -1为全部音频文件
         if (audio != NULL) {
-            playstatus->seek = true;
             audio->queue->clearAvpacket();
             audio->clock = 0;
             audio->last_time = 0;
-            pthread_mutex_lock(&seek_mutex);
-
-            int64_t rel = secds * AV_TIME_BASE; //真实时间 = 秒数 * 时间基
+            pthread_mutex_lock(&audio->codecMutex);
             avcodec_flush_buffers(audio->avCodecContext);
-            avformat_seek_file(pFormatCtx, -1, INT64_MIN, rel, INT64_MAX, 0); // -1为全部音频文件
-            pthread_mutex_unlock(&seek_mutex);
-            playstatus->seek = false;
+            pthread_mutex_unlock(&audio->codecMutex);
         }
+        if (video != NULL) {
+            video->queue->clearAvpacket();
+            video->clock = 0;
+            pthread_mutex_lock(&video->codecMutex);
+            avcodec_flush_buffers(video->avCodecContext);
+            pthread_mutex_unlock(&video->codecMutex);
+        }
+        pthread_mutex_unlock(&seek_mutex);
+        playstatus->seek = false;
     }
 }
 

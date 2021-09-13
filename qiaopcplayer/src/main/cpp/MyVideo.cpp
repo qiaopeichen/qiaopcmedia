@@ -8,10 +8,11 @@ MyVideo::MyVideo(Playstatus *playstatus, CallJava *callJava) {
     this->playstatus = playstatus;
     this->callJava = callJava;
     queue = new MyQueue(playstatus);
+    pthread_mutex_init(&codecMutex, NULL);
 }
 
 MyVideo::~MyVideo() {
-
+    pthread_mutex_destroy(&codecMutex);
 }
 
 void * playVideo(void *data) {
@@ -22,6 +23,11 @@ void * playVideo(void *data) {
             av_usleep(1000 * 100);
             continue;
         }
+        if (video->playstatus->pause) {
+            av_usleep(1000 * 100);
+            continue;
+        }
+
         if (video->queue->getQueueSize() == 0) {
             if (!video->playstatus->load) {
                 video->playstatus->load = true;
@@ -42,6 +48,7 @@ void * playVideo(void *data) {
             avPacket = NULL;
             continue;
         }
+        pthread_mutex_lock(&video->codecMutex);
         // avcodec_send_packet 发送数据到ffmepg，放到解码队列中
         //
         //avcodec_receive_frame 将成功的解码队列中取出1个frame
@@ -49,6 +56,7 @@ void * playVideo(void *data) {
             av_packet_free(&avPacket);
             av_free(avPacket);
             avPacket = NULL;
+            pthread_mutex_unlock(&video->codecMutex);
             continue;
         }
         AVFrame *avFrame = av_frame_alloc();
@@ -59,6 +67,7 @@ void * playVideo(void *data) {
             av_packet_free(&avPacket);
             av_free(avPacket);
             avPacket = NULL;
+            pthread_mutex_unlock(&video->codecMutex);
             continue;
         }
         LOGE("子线程解码一个AVframe成功");
@@ -101,6 +110,7 @@ void * playVideo(void *data) {
                 av_frame_free(&pFrameYUV420P);
                 av_free(pFrameYUV420P);
                 av_free(buffer);
+                pthread_mutex_unlock(&video->codecMutex);
                 continue;
             }
             sws_scale(sws_ctx,
@@ -110,6 +120,10 @@ void * playVideo(void *data) {
                       avFrame->height,
                       pFrameYUV420P->data,
                       pFrameYUV420P->linesize);
+            double diff = video->getFrameDiffTime(avFrame);
+            LOGE("diff is %f", diff);
+
+            av_usleep(video->getDelayTime(diff) * 1000000); //秒转成微秒
             //渲染
             video->callJava->onCallRenderYUV(video->avCodecContext->width,
                                              video->avCodecContext->height,
@@ -128,6 +142,7 @@ void * playVideo(void *data) {
         av_packet_free(&avPacket);
         av_free(avPacket);
         avPacket = NULL;
+        pthread_mutex_unlock(&video->codecMutex);
     }
 
     pthread_exit(&video->thread_play);
@@ -143,9 +158,11 @@ void MyVideo::release() {
         queue = NULL;
     }
     if (avCodecContext != NULL) {
+        pthread_mutex_lock(&codecMutex);
         avcodec_close(avCodecContext);
         avcodec_free_context(&avCodecContext);
         avCodecContext = NULL;
+        pthread_mutex_unlock(&codecMutex);
     }
 
     if (playstatus != NULL) {
@@ -170,20 +187,45 @@ double MyVideo::getFrameDiffTime(AVFrame *avFrame) {
 }
 
 double MyVideo::getDelayTime(double diff) {
-    if (diff > 0) {
-        delayTime = 0;
-    } else if (diff < - 0.003){
-        delayTime = delayTime * 3 / 2;
-        if (delayTime < defaultDelayTime / 2) {
+    if(diff > 0.003)
+    {
+        delayTime = delayTime * 2 / 3;
+        if(delayTime < defaultDelayTime / 2)
+        {
             delayTime = defaultDelayTime * 2 / 3;
-        } else if (delayTime > defaultDelayTime * 2) {
+        }
+        else if(delayTime > defaultDelayTime * 2)
+        {
             delayTime = defaultDelayTime * 2;
         }
-    } else if (diff <= -0.5){
-        delayTime = defaultDelayTime * 2; //2倍延迟
     }
-    if (fabs(diff) >= 10) {
-        //这种情况 音频不存在
+    else if(diff < - 0.003)
+    {
+        delayTime = delayTime * 3 / 2;
+        if(delayTime < defaultDelayTime / 2)
+        {
+            delayTime = defaultDelayTime * 2 / 3;
+        }
+        else if(delayTime > defaultDelayTime * 2)
+        {
+            delayTime = defaultDelayTime * 2;
+        }
+    }
+    else if(diff == 0.003)
+    {
+
+    }
+    if(diff >= 0.5)
+    {
+        delayTime = 0;
+    }
+    else if(diff <= -0.5)
+    {
+        delayTime = defaultDelayTime * 2;
+    }
+
+    if(fabs(diff) >= 10)
+    {
         delayTime = defaultDelayTime;
     }
     LOGE("diff is  sleep -> %lf  default = %lf", delayTime, defaultDelayTime);

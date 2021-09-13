@@ -163,7 +163,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void begin(View view) {
 //        qiaopcPlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
-        qiaopcPlayer.setSource("/storage/emulated/0/Download/亮剑.mp4");
+//        qiaopcPlayer.setSource("/storage/emulated/0/Download/亮剑.mp4");
+        qiaopcPlayer.setSource("/storage/emulated/0/Download/csgotop50.mkv");
 //        qiaopcPlayer.setSource("http://ngcdn001.cnr.cn/live/zgzs/index.m3u8");
         qiaopcPlayer.prepared();
     }
@@ -185,7 +186,10 @@ public class MainActivity extends AppCompatActivity {
                     TimeInfoBean timeInfoBean = (TimeInfoBean) msg.obj;
                     tvTime.setText(TimeUtil.secdsToDateFormat(timeInfoBean.getCurrentTime(), timeInfoBean.getTotalTime())
                             + "/" + TimeUtil.secdsToDateFormat(timeInfoBean.getTotalTime(), timeInfoBean.getTotalTime()));
-                    seekBarSeek.setProgress(timeInfoBean.getCurrentTime() * 100 / timeInfoBean.getTotalTime());
+
+                    if (!isSeekBar && timeInfoBean.getTotalTime() > 0) {
+                        seekBarSeek.setProgress(timeInfoBean.getCurrentTime() * 100 / timeInfoBean.getTotalTime());
+                    }
                 }
             }
         }

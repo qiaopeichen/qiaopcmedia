@@ -95,7 +95,7 @@ public:
     bool isCut = false;
     int end_time = 0;
     bool showPcm = false;
-
+    pthread_mutex_t codecMutex;
 public:
     MyAudio(Playstatus *playstatus, int sample_rate, CallJava *callJava);
     ~MyAudio();

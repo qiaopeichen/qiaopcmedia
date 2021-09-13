@@ -22,10 +22,12 @@ MyAudio::MyAudio(Playstatus *playstatus, int sample_rate, CallJava *callJava) {
     soundTouch->setChannels(2);
     soundTouch->setPitch(pitch); //设置音调
     soundTouch->setTempo(speed); //设置音速
+    pthread_mutex_init(&codecMutex, NULL);
+
 }
 
 MyAudio::~MyAudio() {
-
+    pthread_mutex_destroy(&codecMutex);
 }
 
 void *decodePlay(void *data) {
@@ -135,11 +137,13 @@ int MyAudio::resampleAudio(void **pcmbuf) {
                 avPacket = NULL;
                 continue;
             }
+            pthread_mutex_lock(&codecMutex);
             ret = avcodec_send_packet(avCodecContext, avPacket); //一个avpacket里，可能存在多个frame
             if (ret != 0) {
                 av_packet_free(&avPacket);
                 av_free(avPacket);
                 avPacket = NULL;
+                pthread_mutex_unlock(&codecMutex);
                 continue;
             }
         }
@@ -178,6 +182,7 @@ int MyAudio::resampleAudio(void **pcmbuf) {
                     swr_ctx = NULL;
                 }
                 readFrameFinish = true;
+                pthread_mutex_unlock(&codecMutex);
                 continue;
             }
 
@@ -211,6 +216,7 @@ int MyAudio::resampleAudio(void **pcmbuf) {
             avFrame = NULL;
             swr_free(&swr_ctx);
             swr_ctx = NULL;
+            pthread_mutex_unlock(&codecMutex);
             break;
         } else {
             readFrameFinish = true;
@@ -220,6 +226,7 @@ int MyAudio::resampleAudio(void **pcmbuf) {
             av_frame_free(&avFrame);
             av_free(avFrame);
             avFrame = NULL;
+            pthread_mutex_unlock(&codecMutex);
             continue;
         }
     }
@@ -231,29 +238,50 @@ int MyAudio::resampleAudio(void **pcmbuf) {
 int MyAudio::getSoundTouchData() {
     //循环获取
     while (playstatus != NULL && !playstatus->exit) {
+        LOGE("qiaopppp-1");
         out_buffer = NULL;
+        LOGE("qiaopppp0");
+
         if (finished) {
+            LOGE("qiaopppp1");
             finished = false;
+            LOGE("qiaopppp2");
+
             data_size = resampleAudio(reinterpret_cast<void **>(&out_buffer));
+            LOGE("qiaopppp3");
+
             if (data_size > 0) {
+                LOGE("qiaopppp4");
                 //因为soundtouch需要16位，所以这里8位转成16位
                 for (int i = 0; i < data_size / 2 + 1; i++) {
+                    if (sampleBuffer == NULL || out_buffer == NULL) {
+                        return 0;
+                    }
                     sampleBuffer[i] = (out_buffer[i * 2] | (out_buffer[i * 2 + 1]) << 8);
+                }
+                LOGE("qiaopppp5");
+                if (soundTouch == NULL) {
+                    return 0;
                 }
                 soundTouch->putSamples(sampleBuffer, nb);
                 num = soundTouch->receiveSamples(sampleBuffer, data_size /4); // 为什么要/4 11:52  因为返回的是采样个数，要除以2（双声道）再除以2（采样位数16字节 = 2位）
+                LOGE("qiaopppp6");
             } else {
                 soundTouch->flush();
+                LOGE("qiaopppp7");
             }
         }
+        LOGE("qiaopppp8");
         if (num == 0) {
             finished = true;
+            LOGE("qiaopppp9");
             continue;
         } else {
             if (out_buffer == NULL) {
                 num = soundTouch->receiveSamples(sampleBuffer, data_size /4);
                 if (num == 0) {
                     finished = true;
+                    LOGE("qiaopppp10");
                     continue;
                 }
             }

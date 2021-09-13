@@ -190,6 +190,7 @@ public class QiaopcPlayer {
             if (timeInfoBean == null) {
                 timeInfoBean = new TimeInfoBean();
             }
+            duration = totalTime;
             timeInfoBean.setCurrentTime(currentTime);
             timeInfoBean.setTotalTime(totalTime);
             onTimeInfoListener.onTimeInfo(timeInfoBean);
@@ -225,9 +226,9 @@ public class QiaopcPlayer {
     }
 
     public int getDuration() {
-        if (duration < 0) {
-            duration = n_duration();
-        }
+//        if (duration < 0) {
+//            duration = n_duration();
+//        }
         return duration;
     }
 

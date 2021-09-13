@@ -146,7 +146,7 @@ public class MyRender implements GLSurfaceView.Renderer {
 
             GLES20.glEnableVertexAttribArray(avPosition_yuv); //10使顶点属性数组有效
             GLES20.glVertexAttribPointer(avPosition_yuv, 2, GLES20.GL_FLOAT, false, 8, vertexBuffer); //11为顶点属性赋值
-            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4); //12 绘制图形
+//            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4); //12 绘制图形
 
             GLES20.glEnableVertexAttribArray(afPosition_yuv); //绘制纹理坐标
             GLES20.glVertexAttribPointer(afPosition_yuv, 2, GLES20.GL_FLOAT, false, 8, textureBuffer);
