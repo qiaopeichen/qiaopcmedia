@@ -9,7 +9,8 @@
 #include "MyQueue.h"
 #include "CallJava.h"
 #include "MyAudio.h"
-
+#define CODEC_YUV 0 //软解码
+#define CODEC_MEDIACODEC 1 //硬解码
 extern "C" {
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
@@ -32,6 +33,10 @@ public:
 
     MyAudio *audio = NULL;
     double clock = 0;
+    double delayTime = 0;
+    double defaultDelayTime = 0.04; //默认帧数25
+    pthread_mutex_t codecMutex;
+    int codectype = CODEC_YUV;
 public:
     MyVideo(Playstatus *playstatus, CallJava *callJava);
     ~MyVideo();
@@ -40,9 +45,6 @@ public:
 
     double getFrameDiffTime(AVFrame * avFrame);
     double getDelayTime(double diff);
-    double delayTime = 0;
-    double defaultDelayTime = 0.04; //默认帧数25
-    pthread_mutex_t codecMutex;
 };
 
 

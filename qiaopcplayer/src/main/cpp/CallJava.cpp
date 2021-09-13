@@ -30,6 +30,7 @@ CallJava::CallJava(JavaVM *javaVM, JNIEnv *env, jobject *obj) {
     jmid_pcminfo = env->GetMethodID(jlz, "onCallPcmInfo", "([BI)V");
     jmid_pcmrate = env->GetMethodID(jlz, "onCallPcmRate", "(I)V");
     jmid_renderyuv = env->GetMethodID(jlz, "onCallRenderYUV", "(II[B[B[B)V");
+    jmid_supportvideo = env->GetMethodID(jlz, "onCallIsSupportMediaCodec", "(Ljava/lang/String;)Z");
 }
 
 void CallJava::onCallPrepared(int type) {
@@ -274,4 +275,48 @@ void CallJava::onCallRenderYUV(int width, int height, uint8_t *fy, uint8_t *fu, 
     if (isAttached) {
         javaVM->DetachCurrentThread();
     }
+}
+
+//JNIEnv *jniEnv;
+//int status;
+//bool isAttached = false;
+//status = javaVM->GetEnv((void **) &jniEnv, JNI_VERSION_1_4);
+//if (status < 0) {
+//if (javaVM->AttachCurrentThread(&jniEnv, 0) !=
+//JNI_OK) { //从全局的JavaVM中获取到环境变量，获取到当前线程中的JNIEnv指针
+//if (LOG_DEBUG) {
+//LOGE("get child thread jnienv wrong");
+//}
+//return;
+//}
+//isAttached = true;
+//}
+//jniEnv->CallVoidMethod(jobj, jmid_pcmrate,samplerate);
+//if (isAttached) {
+//javaVM->DetachCurrentThread();
+//}
+
+bool CallJava::onCallIsSupportVideo(const char *ffcodecname) {
+    bool support = false;
+    JNIEnv *jniEnv;
+    int status;
+    bool isAttached = false;
+    status = javaVM->GetEnv((void **) &jniEnv, JNI_VERSION_1_4);
+    if (status < 0) {
+        if (javaVM->AttachCurrentThread(&jniEnv, 0) !=
+            JNI_OK) { //从全局的JavaVM中获取到环境变量，获取到当前线程中的JNIEnv指针
+            if (LOG_DEBUG) {
+                LOGE("get child thread jnienv wrong");
+            }
+            return support;
+        }
+        isAttached = true;
+    }
+
+    jstring type = jniEnv->NewStringUTF(ffcodecname);
+    support = jniEnv->CallBooleanMethod(jobj, jmid_supportvideo, type);
+    if (isAttached) {
+        javaVM->DetachCurrentThread();
+    }
+    return support;
 }

@@ -131,8 +131,18 @@ void MyFFmepg::start() {
         return;
     }
 
+    supportMediacodec = false;
     video->audio = audio;
 
+    //判断是否支持硬解码
+//    const char* codecName =((const AVCodec*)video->avCodecContext->codec)->name;
+    const char* codecName =(video->avCodecContext->codec)->name;
+    supportMediacodec = callJava->onCallIsSupportVideo(codecName);
+    if (supportMediacodec) {
+        LOGE("当前视频支持硬解码当前视频");
+
+        video->codectype = CODEC_MEDIACODEC;
+    }
     audio->play();
     video->play();
     int count = 0;

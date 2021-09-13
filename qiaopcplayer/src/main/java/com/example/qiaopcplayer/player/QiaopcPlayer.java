@@ -18,6 +18,7 @@ import com.example.qiaopcplayer.listener.OnValumeDBListener;
 import com.example.qiaopcplayer.log.MyLog;
 import com.example.qiaopcplayer.muteenum.MuteEnum;
 import com.example.qiaopcplayer.opengl.MyGLSurfaceView;
+import com.example.qiaopcplayer.util.VideoSupportUtil;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -224,6 +225,11 @@ public class QiaopcPlayer {
             myGLSurfaceView.setYUVData(width, height, y, u, v);
         }
     }
+
+    public boolean onCallIsSupportMediaCodec(String ffcodecname) {
+        return VideoSupportUtil.isSupportCodec(ffcodecname);
+    }
+
 
     public int getDuration() {
 //        if (duration < 0) {

@@ -30,6 +30,7 @@ public:
     jmethodID jmid_pcminfo;
     jmethodID jmid_pcmrate;
     jmethodID jmid_renderyuv;
+    jmethodID jmid_supportvideo;
 public:
     CallJava(JavaVM *javaVM, JNIEnv *env, jobject *obj);
     ~CallJava();
@@ -53,6 +54,8 @@ public:
     void onCallPcmRate(int samplerate);
 
     void onCallRenderYUV(int width, int height, uint8_t *fy, uint8_t *fu, uint8_t *fv);
+
+    bool onCallIsSupportVideo(const char *ffcodecname);
 };
 
 

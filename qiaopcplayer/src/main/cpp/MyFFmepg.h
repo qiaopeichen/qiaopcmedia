@@ -30,6 +30,7 @@ public:
     bool exit = false;
     int duration = 0;
     pthread_mutex_t seek_mutex;
+    bool supportMediacodec = false;
 public:
     MyFFmepg(Playstatus *playstatus, CallJava *callJava, const char* url);
     ~MyFFmepg();
