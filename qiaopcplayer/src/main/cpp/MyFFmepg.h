@@ -31,6 +31,7 @@ public:
     int duration = 0;
     pthread_mutex_t seek_mutex;
     bool supportMediacodec = false;
+    const AVBitStreamFilter *bsFilter = NULL; //可以实现头信息添加
 public:
     MyFFmepg(Playstatus *playstatus, CallJava *callJava, const char* url);
     ~MyFFmepg();

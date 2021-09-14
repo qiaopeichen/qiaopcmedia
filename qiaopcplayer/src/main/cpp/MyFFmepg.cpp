@@ -140,8 +140,37 @@ void MyFFmepg::start() {
     supportMediacodec = callJava->onCallIsSupportVideo(codecName);
     if (supportMediacodec) {
         LOGE("当前视频支持硬解码当前视频");
+        if (strcasecmp(codecName, "h264") == 0) {
+            bsFilter = av_bsf_get_by_name("h264_mp4toannexb"); // 1、找到相应解码器的过滤器
+        } else if (strcasecmp(codecName, "h265") == 0) {
+            bsFilter = av_bsf_get_by_name("hevc_mp4toannexb");
+        }
+        if (bsFilter == NULL) {
+            goto end;
+        }
+        if (av_bsf_alloc(bsFilter, &video->abs_ctx) != 0) { //2、初始化过滤器上下文
+            supportMediacodec = false;
+            goto end;
+        }
+        if (avcodec_parameters_copy(video->abs_ctx->par_in, video->codecpar) < 0) { //3、添加解码器属性
+            supportMediacodec = false;
+            av_bsf_free(&video->abs_ctx);
+            video->abs_ctx = NULL;
+            goto end;
+        }
+        if (av_bsf_init(video->abs_ctx) != 0) { //4、初始化过滤器上下文
+            supportMediacodec = false;
+            av_bsf_free(&video->abs_ctx);
+            video->abs_ctx = NULL;
+            goto end;
+        }
+        video->abs_ctx->time_base_in = video->time_base;
 
-        video->codectype = CODEC_MEDIACODEC;
+        end:
+        supportMediacodec = false;
+        if (supportMediacodec) {
+            video->codectype = CODEC_MEDIACODEC;
+        }
     }
     audio->play();
     video->play();

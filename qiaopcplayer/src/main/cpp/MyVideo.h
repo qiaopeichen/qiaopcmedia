@@ -37,6 +37,8 @@ public:
     double defaultDelayTime = 0.04; //默认帧数25
     pthread_mutex_t codecMutex;
     int codectype = CODEC_YUV;
+
+    AVBSFContext *abs_ctx = NULL;
 public:
     MyVideo(Playstatus *playstatus, CallJava *callJava);
     ~MyVideo();
