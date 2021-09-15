@@ -167,9 +167,16 @@ void MyFFmepg::start() {
         video->abs_ctx->time_base_in = video->time_base;
 
         end:
-        supportMediacodec = false;
+//        supportMediacodec = false;
         if (supportMediacodec) {
             video->codectype = CODEC_MEDIACODEC;
+            video->callJava->onCallInitMediacodec(codecName,
+                                                  video->avCodecContext->width,
+                                                  video->avCodecContext->height,
+                                                  video->avCodecContext->extradata_size,
+                                                  video->avCodecContext->extradata_size,
+                                                  video->avCodecContext->extradata,
+                                                  video->avCodecContext->extradata);
         }
     }
     audio->play();
