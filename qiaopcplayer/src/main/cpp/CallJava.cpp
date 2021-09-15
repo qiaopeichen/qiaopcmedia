@@ -31,6 +31,8 @@ CallJava::CallJava(JavaVM *javaVM, JNIEnv *env, jobject *obj) {
     jmid_pcmrate = env->GetMethodID(jlz, "onCallPcmRate", "(I)V");
     jmid_renderyuv = env->GetMethodID(jlz, "onCallRenderYUV", "(II[B[B[B)V");
     jmid_supportvideo = env->GetMethodID(jlz, "onCallIsSupportMediaCodec", "(Ljava/lang/String;)Z");
+    jmid_initmediacodec = env->GetMethodID(jlz, "initMediaCodec", "(Ljava/lang/String;II[B[B)V");
+    jmid_decodeavpacket = env->GetMethodID(jlz, "decodeAVPacket", "(I[B)V");
 }
 
 void CallJava::onCallPrepared(int type) {
@@ -319,4 +321,60 @@ bool CallJava::onCallIsSupportVideo(const char *ffcodecname) {
         javaVM->DetachCurrentThread();
     }
     return support;
+}
+
+void CallJava::onCallInitMediacodec(const char *mime, int width, int height, int csd0_size, int csd1_size, uint8_t *csd_0, uint8_t *csd_1) {
+
+    JNIEnv *jniEnv;
+    int status;
+    bool isAttached = false;
+    status = javaVM->GetEnv((void **) &jniEnv, JNI_VERSION_1_4);
+    if (status < 0) {
+        if (javaVM->AttachCurrentThread(&jniEnv, 0) !=
+            JNI_OK) { //从全局的JavaVM中获取到环境变量，获取到当前线程中的JNIEnv指针
+            if (LOG_DEBUG) {
+                LOGE("get child thread jnienv wrong");
+            }
+            return;
+        }
+        isAttached = true;
+    }
+    jstring  type = jniEnv->NewStringUTF(mime);
+    jbyteArray csd0 = jniEnv->NewByteArray(csd0_size);
+    jniEnv->SetByteArrayRegion(csd0, 0, csd0_size, reinterpret_cast<const jbyte *>(csd_0));
+    jbyteArray csd1 = jniEnv->NewByteArray(csd1_size);
+    jniEnv->SetByteArrayRegion(csd0, 0, csd1_size, reinterpret_cast<const jbyte *>(csd_1));
+
+    jniEnv->CallVoidMethod(jobj, jmid_initmediacodec, type, width, height, csd0, csd1);
+    jniEnv->DeleteLocalRef(csd0);
+    jniEnv->DeleteLocalRef(csd1);
+    jniEnv->DeleteLocalRef(type);
+    if (isAttached) {
+        javaVM->DetachCurrentThread();
+    }
+}
+
+void CallJava::onCallDecodeAVPacket(int datasize, uint8_t *packetdata) {
+    JNIEnv *jniEnv;
+    int status;
+    bool isAttached = false;
+    status = javaVM->GetEnv((void **) &jniEnv, JNI_VERSION_1_4);
+    if (status < 0) {
+        if (javaVM->AttachCurrentThread(&jniEnv, 0) !=
+            JNI_OK) { //从全局的JavaVM中获取到环境变量，获取到当前线程中的JNIEnv指针
+            if (LOG_DEBUG) {
+                LOGE("get child thread jnienv wrong");
+            }
+            return;
+        }
+        isAttached = true;
+    }
+    jbyteArray data = jniEnv->NewByteArray(datasize);
+    jniEnv->SetByteArrayRegion(data, 0, datasize, reinterpret_cast<const jbyte *>(packetdata));
+
+    jniEnv->CallVoidMethod(jobj, jmid_decodeavpacket, datasize, data);
+    jniEnv->DeleteLocalRef(data);
+    if (isAttached) {
+        javaVM->DetachCurrentThread();
+    }
 }

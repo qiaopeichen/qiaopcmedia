@@ -4,6 +4,7 @@ import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.text.TextUtils;
+import android.view.Surface;
 
 import com.example.qiaopcplayer.TimeInfoBean;
 import com.example.qiaopcplayer.listener.OnCompleteListener;
@@ -58,6 +59,11 @@ public class QiaopcPlayer {
     private OnPcmInfoListener onPcmInfoListener;
     private MyGLSurfaceView myGLSurfaceView;
     private static TimeInfoBean timeInfoBean;
+
+    private MediaFormat mediaFormat;
+    private MediaCodec mediaCodec;
+    private Surface surface;
+    private MediaCodec.BufferInfo info;
 
     public void setSource(String source) {
         this.source = source;
@@ -230,6 +236,53 @@ public class QiaopcPlayer {
         return VideoSupportUtil.isSupportCodec(ffcodecname);
     }
 
+    /**
+     * 初始化MediaCodec
+     * @param codecName
+     * @param width
+     * @param height
+     * @param csd_0
+     * @param csd_1
+     */
+    public void initMediaCodec(String codecName, int width, int height, byte[] csd_0, byte[] csd_1) {
+        if (surface != null) {
+            try {
+                //MIME:多媒体文件格式
+                String mime = VideoSupportUtil.findVideoCodecName(codecName);
+                mediaFormat = MediaFormat.createVideoFormat(mime, width, height);
+                mediaFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, width * height);
+                mediaFormat.setByteBuffer("csd-0", ByteBuffer.wrap(csd_0));
+                mediaFormat.setByteBuffer("csd-1", ByteBuffer.wrap(csd_1));
+                MyLog.d("initMediaCodec->"+ mediaFormat.toString());
+                mediaCodec = MediaCodec.createDecoderByType(mime);
+                mediaCodec.configure(mediaFormat, surface, null, 0);
+                mediaCodec.start();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            if (onErrorListener != null) {
+                onErrorListener.onError(2001, "surface is null");
+            }
+        }
+    }
+
+    public void decodeAVPacket(int datasize, byte[] data) {
+        if (surface != null && datasize > 0 && data != null) {
+            int inputBufferIndex = mediaCodec.dequeueInputBuffer(10);
+            if (inputBufferIndex >= 0) {
+                ByteBuffer byteBuffer = mediaCodec.getOutputBuffers()[inputBufferIndex];
+                byteBuffer.clear();
+                byteBuffer.put(data);
+                mediaCodec.queueInputBuffer(inputBufferIndex, 0, datasize, 0, 0);
+            }
+            int outputBufferIndex = mediaCodec.dequeueOutputBuffer(info, 10);
+            while (outputBufferIndex >= 0) {
+                mediaCodec.releaseOutputBuffer(outputBufferIndex, true);
+                outputBufferIndex = mediaCodec.dequeueOutputBuffer(info, 10);
+            }
+        }
+    }
 
     public int getDuration() {
 //        if (duration < 0) {
@@ -269,7 +322,7 @@ public class QiaopcPlayer {
             audioSamplerate = n_samplerate();
             if(audioSamplerate > 0) {
                 initmediacodec = true;
-                initMediacodec(audioSamplerate, outfile);
+//                initMediacodec(audioSamplerate, outfile);
                 n_startstoprecord(true);
                 MyLog.d("开始录制");
             }
@@ -340,35 +393,35 @@ public class QiaopcPlayer {
     private MediaFormat encoderFormat = null;
     private MediaCodec encoder = null;
     private FileOutputStream outputStream = null;
-    private MediaCodec.BufferInfo info = null;
+//    private MediaCodec.BufferInfo info = null;
     private int perpcmsize = 0;
     private byte[] outByteBuffer = null;
     private int aacsamplerate = 4;
     private double recordTime = 0;
     private int audioSamplerate = 0;
 
-    //关于AAC的ADTS头文件信息介绍 博客https://blog.csdn.net/jay100500/article/details/52955232
-    private void initMediacodec(int samperate, File outfile) {
-        try {
-            aacsamplerate = getADTSsamplerate(samperate);
-            encoderFormat = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, samperate, 2);
-            encoderFormat.setInteger(MediaFormat.KEY_BIT_RATE, 96000); // 设置码率
-            encoderFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC); //adt编码等级
-            encoderFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 4096); //输入最大值
-            encoder = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC);
-            info = new MediaCodec.BufferInfo();
-            if (encoder == null) {
-                MyLog.d("create encoder wrong");
-                return;
-            }
-            recordTime = 0;
-            encoder.configure(encoderFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-            outputStream = new FileOutputStream(outfile); //编码后输出的文件就写到outfile里
-            encoder.start();//接收输入队列并进行编码
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+//    //关于AAC的ADTS头文件信息介绍 博客https://blog.csdn.net/jay100500/article/details/52955232
+//    private void initMediacodec(int samperate, File outfile) {
+//        try {
+//            aacsamplerate = getADTSsamplerate(samperate);
+//            encoderFormat = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, samperate, 2);
+//            encoderFormat.setInteger(MediaFormat.KEY_BIT_RATE, 96000); // 设置码率
+//            encoderFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC); //adt编码等级
+//            encoderFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 4096); //输入最大值
+//            encoder = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC);
+//            info = new MediaCodec.BufferInfo();
+//            if (encoder == null) {
+//                MyLog.d("create encoder wrong");
+//                return;
+//            }
+//            recordTime = 0;
+//            encoder.configure(encoderFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+//            outputStream = new FileOutputStream(outfile); //编码后输出的文件就写到outfile里
+//            encoder.start();//接收输入队列并进行编码
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
     private void encodecPcmToAAC(int size, byte[] buffer) {
         MyLog.d("buffer size is:" + size + " buffer byte:" + buffer.length);
         if (buffer != null && encoder != null) {
