@@ -19,6 +19,7 @@ import com.example.qiaopcplayer.listener.OnValumeDBListener;
 import com.example.qiaopcplayer.log.MyLog;
 import com.example.qiaopcplayer.muteenum.MuteEnum;
 import com.example.qiaopcplayer.opengl.MyGLSurfaceView;
+import com.example.qiaopcplayer.opengl.MyRender;
 import com.example.qiaopcplayer.util.VideoSupportUtil;
 
 import java.io.File;
@@ -71,6 +72,15 @@ public class QiaopcPlayer {
 
     public void setMyGLSurfaceView(MyGLSurfaceView myGLSurfaceView) {
         this.myGLSurfaceView = myGLSurfaceView;
+        myGLSurfaceView.getRender().setOnSurfaceCreateListener(new MyRender.OnSurfaceCreateListener() {
+            @Override
+            public void onSurfaceCreate(Surface s) {
+                if (surface == null) {
+                    surface = s;
+                    MyLog.d("onSurfaceCreate");
+                }
+            }
+        });
     }
 
     public void setOnPreparedListener(OnPreparedListener onPreparedListener) {
@@ -168,6 +178,7 @@ public class QiaopcPlayer {
         timeInfoBean = null;
         duration = -1;
         stopRecord();
+        releaseMediacodec();
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -228,6 +239,7 @@ public class QiaopcPlayer {
     public void onCallRenderYUV(int width, int height, byte[] y, byte[] u, byte[] v) {
         MyLog.d("获取到视频的yuv数据");
         if (myGLSurfaceView != null) {
+            myGLSurfaceView.getRender().setRenderType(MyRender.RENDER_YUV);
             myGLSurfaceView.setYUVData(width, height, y, u, v);
         }
     }
@@ -248,6 +260,7 @@ public class QiaopcPlayer {
         if (surface != null) {
             try {
                 //MIME:多媒体文件格式
+                myGLSurfaceView.getRender().setRenderType(MyRender.RENDER_MEDIACODEC);
                 String mime = VideoSupportUtil.findVideoCodecName(codecName);
                 mediaFormat = MediaFormat.createVideoFormat(mime, width, height);
                 mediaFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, width * height);
@@ -255,6 +268,10 @@ public class QiaopcPlayer {
                 mediaFormat.setByteBuffer("csd-1", ByteBuffer.wrap(csd_1));
                 MyLog.d("initMediaCodec->"+ mediaFormat.toString());
                 mediaCodec = MediaCodec.createDecoderByType(mime);
+
+
+                info = new MediaCodec.BufferInfo();
+
                 mediaCodec.configure(mediaFormat, surface, null, 0);
                 mediaCodec.start();
             } catch (IOException e) {
@@ -268,10 +285,10 @@ public class QiaopcPlayer {
     }
 
     public void decodeAVPacket(int datasize, byte[] data) {
-        if (surface != null && datasize > 0 && data != null) {
+        if (surface != null && datasize > 0 && data != null && mediaCodec != null) {
             int inputBufferIndex = mediaCodec.dequeueInputBuffer(10);
             if (inputBufferIndex >= 0) {
-                ByteBuffer byteBuffer = mediaCodec.getOutputBuffers()[inputBufferIndex];
+                ByteBuffer byteBuffer = mediaCodec.getInputBuffers()[inputBufferIndex];
                 byteBuffer.clear();
                 byteBuffer.put(data);
                 mediaCodec.queueInputBuffer(inputBufferIndex, 0, datasize, 0, 0);
@@ -536,31 +553,14 @@ public class QiaopcPlayer {
     }
 
     private void releaseMediacodec() {
-        if (encoder == null) {
-            return;
-        }
-        try {
-            recordTime = 0;
-            outputStream.close();
-            outputStream = null;
-            encoder.stop();
-            encoder.release();
-            encoder = null;
-            encoderFormat = null;
+        if (mediaCodec != null) {
+            mediaCodec.flush();
+            mediaCodec.stop();
+            mediaCodec.release();
+
+            mediaCodec = null;
+            mediaFormat = null;
             info = null;
-            initmediacodec = false;
-            MyLog.d("录制完成");
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (outputStream != null) {
-                try {
-                    outputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                outputStream = null;
-            }
         }
     }
 }
