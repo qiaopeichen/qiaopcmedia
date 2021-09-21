@@ -178,11 +178,11 @@ public class QiaopcPlayer {
         timeInfoBean = null;
         duration = -1;
         stopRecord();
-        releaseMediacodec();
         new Thread(new Runnable() {
             @Override
             public void run() {
                 n_stop();
+                releaseMediacodec();
             }
         }).start();
     }
@@ -286,18 +286,22 @@ public class QiaopcPlayer {
 
     public void decodeAVPacket(int datasize, byte[] data) {
         if (surface != null && datasize > 0 && data != null && mediaCodec != null) {
-            int inputBufferIndex = mediaCodec.dequeueInputBuffer(10);
-            if (inputBufferIndex >= 0) {
-                ByteBuffer byteBuffer = mediaCodec.getInputBuffers()[inputBufferIndex];
-                byteBuffer.clear();
-                byteBuffer.put(data);
-                mediaCodec.queueInputBuffer(inputBufferIndex, 0, datasize, 0, 0);
-            }
-            int outputBufferIndex = mediaCodec.dequeueOutputBuffer(info, 10);
-            while (outputBufferIndex >= 0) {
-                mediaCodec.releaseOutputBuffer(outputBufferIndex, true);
-                outputBufferIndex = mediaCodec.dequeueOutputBuffer(info, 10);
-            }
+           try {
+               int inputBufferIndex = mediaCodec.dequeueInputBuffer(10);
+               if (inputBufferIndex >= 0) {
+                   ByteBuffer byteBuffer = mediaCodec.getInputBuffers()[inputBufferIndex];
+                   byteBuffer.clear();
+                   byteBuffer.put(data);
+                   mediaCodec.queueInputBuffer(inputBufferIndex, 0, datasize, 0, 0);
+               }
+               int outputBufferIndex = mediaCodec.dequeueOutputBuffer(info, 10);
+               while (outputBufferIndex >= 0) {
+                   mediaCodec.releaseOutputBuffer(outputBufferIndex, true);
+                   outputBufferIndex = mediaCodec.dequeueOutputBuffer(info, 10);
+               }
+           }catch (Exception e) {
+                e.printStackTrace();
+           }
         }
     }
 
@@ -554,13 +558,17 @@ public class QiaopcPlayer {
 
     private void releaseMediacodec() {
         if (mediaCodec != null) {
-            mediaCodec.flush();
-            mediaCodec.stop();
-            mediaCodec.release();
+           try {
+               mediaCodec.flush();
+               mediaCodec.stop();
+               mediaCodec.release();
 
-            mediaCodec = null;
-            mediaFormat = null;
-            info = null;
+               mediaCodec = null;
+               mediaFormat = null;
+               info = null;
+           }catch (Exception e) {
+               e.printStackTrace();
+           }
         }
     }
 }

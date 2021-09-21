@@ -170,14 +170,23 @@ void * playVideo(void *data) {
         }
     }
 
-    pthread_exit(&video->thread_play);
+//    pthread_exit(&video->thread_play);
+    return 0;
 }
 
 void MyVideo::play() {
-    pthread_create(&thread_play, NULL, playVideo, this);
+    if (playstatus != NULL && !playstatus->exit) {
+        pthread_create(&thread_play, NULL, playVideo, this);
+    }
 }
 
 void MyVideo::release() {
+
+    if (queue != NULL) {
+        queue->noticeQueue();
+    }
+    pthread_join(thread_play, NULL);
+
     if (queue != NULL) {
         delete(queue);
         queue = NULL;

@@ -73,3 +73,8 @@ void MyQueue::clearAvpacket() {
 
     pthread_mutex_unlock(&mutexPacket);
 }
+
+void MyQueue::noticeQueue() {
+    pthread_cond_signal(&condPacket);//发送信息
+    pthread_mutex_unlock(&mutexPacket);
+}

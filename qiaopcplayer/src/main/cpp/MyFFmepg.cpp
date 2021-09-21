@@ -14,7 +14,8 @@ MyFFmepg::MyFFmepg(Playstatus *playstatus, CallJava *callJava, const char *url) 
 void *decodeFFmpeg(void *data) {
     MyFFmepg *myFFmepg = (MyFFmepg *) data;
     myFFmepg->decodeFFmpegThread();
-    pthread_exit(&myFFmepg->decodeThread);
+//    pthread_exit(&myFFmepg->decodeThread);
+    return 0;
 }
 
 void MyFFmepg::prepared() {
@@ -278,6 +279,9 @@ void MyFFmepg::release() {
 //        return;
 //    }
     playstatus->exit = true;
+
+    pthread_join(decodeThread, NULL);
+
     pthread_mutex_lock(&init_mutex);
 
     int sleepCount = 0;

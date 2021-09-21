@@ -34,7 +34,8 @@ void *decodePlay(void *data) {
     MyAudio *audio = (MyAudio *)(data);
 //    audio->resampleAudio();
     audio->initOpenSLES();
-    pthread_exit(&audio->thread_play);
+//    pthread_exit(&audio->thread_play);
+    return 0;
 }
 
 void *pcmCallBack(void *data) {
@@ -98,9 +99,11 @@ void *pcmCallBack(void *data) {
 
 void MyAudio::play() {
     LOGD("MyAudio::play()");
-    bufferQueue = new MyBufferQueue(playstatus);
-    pthread_create(&thread_play, NULL, decodePlay, this);
-    pthread_create(&pcmCallBackThread, NULL, pcmCallBack, this);
+    if (playstatus != NULL && !playstatus->exit) {
+        bufferQueue = new MyBufferQueue(playstatus);
+        pthread_create(&thread_play, NULL, decodePlay, this);
+        pthread_create(&pcmCallBackThread, NULL, pcmCallBack, this);
+    }
 }
 
 //FILE *outFile = fopen("/mnt/shared/Other/mymusic.pcm", "w");
@@ -460,6 +463,10 @@ void MyAudio::stop() {
 void MyAudio::release() {
     stop();
 
+    if (queue != NULL) {
+        queue->noticeQueue();
+    }
+    pthread_join(thread_play, NULL);
     if (bufferQueue != NULL) {
         bufferQueue->noticeThread();
         pthread_join(pcmCallBackThread, NULL); // 线程阻塞在pcmCallBackThread，直到pcmCallBackThread退出

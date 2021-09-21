@@ -49,7 +49,8 @@ Java_com_example_qiaopcplayer_player_QiaopcPlayer_n_1prepared(JNIEnv *env, jobje
 void *startCallBack(void *data) {
     MyFFmepg *fFmepg = static_cast<MyFFmepg *>(data);
     fFmepg->start();
-    pthread_exit(&thread_start);
+//    pthread_exit(&thread_start);
+    return 0;
 }
 
 extern "C"
@@ -85,6 +86,7 @@ Java_com_example_qiaopcplayer_player_QiaopcPlayer_n_1stop(JNIEnv *env, jobject i
 
     if (fFmepg != NULL) {
         fFmepg->release();
+        pthread_join(thread_start, NULL);
         delete(fFmepg);
         fFmepg = NULL;
         if (callJava != NULL) {
