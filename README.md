@@ -1,5 +1,5 @@
 # qiaopcmusic
-实现一个万能音频播放器
+实现一个万能视频播放器
 
 添加依赖方式：
 To get a Git project into your build:
@@ -17,5 +17,5 @@ allprojects {
 
 Step 2. Add the dependency
 dependencies {
-        implementation 'com.github.qiaopeichen:qiaopcmusic:1.2.7'
+	    implementation 'com.github.qiaopeichen:qiaopcmedia:1.0.0'
 }
